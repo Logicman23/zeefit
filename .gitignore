@@ -9,3 +9,7 @@ next-env.d.ts
 .DS_Store
 
 .vercel
+
+# Next.js auto-generated agent rule files
+AGENTS.md
+CLAUDE.md
