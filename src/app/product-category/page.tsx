@@ -48,11 +48,11 @@ export default async function CategoryPage({ searchParams }: Params) {
       </div>
 
       <div className="grid gap-12 py-12 lg:grid-cols-[16rem_1fr] lg:gap-16 lg:py-16">
-        <aside className="order-2 lg:order-1">
+        <aside className="order-1">
           <CategorySidebar activeId={id} activeType={type} />
         </aside>
 
-        <div className="order-1 lg:order-2">
+        <div className="order-2">
           <h2 className="rule-tick pt-6 font-display text-lg font-semibold tracking-tight text-ink">
             {cat ? `All Products Under "${cat.name}"` : "All Products"}
           </h2>

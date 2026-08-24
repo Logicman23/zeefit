@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { catalog, staticLinks, categoryHref } from "@/data/catalog";
 
@@ -11,6 +12,15 @@ import { catalog, staticLinks, categoryHref } from "@/data/catalog";
 export default function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [openTop, setOpenTop] = useState<number | null>(null);
   const [openMid, setOpenMid] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  /**
+   * Rendered through a portal to <body>. The header carries `backdrop-filter`,
+   * which makes it the containing block for fixed-position descendants — inside
+   * it, `fixed inset-y-0` resolves against the header box and the drawer
+   * collapses to header height instead of filling the viewport.
+   */
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -25,7 +35,9 @@ export default function MobileNav({ open, onClose }: { open: boolean; onClose: (
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       <div
         onClick={onClose}
@@ -164,6 +176,7 @@ export default function MobileNav({ open, onClose }: { open: boolean; onClose: (
           ))}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
