@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+/* ============================================================
+   ZEE FIT — "Clinical Performance" design system
+   Crisp white + deep teal / graphite. Geometric sans.
+   Sharp edges, precise rules, restrained motion.
+   ============================================================ */
+
+@theme {
+  /* Surfaces */
+  --color-paper: #ffffff;
+  --color-mist: #f5f7f8;
+  --color-haze: #eceff1;
+  --color-line: #dfe4e7;
+  --color-line-strong: #c6cfd3;
+
+  /* Ink */
+  --color-ink: #0b1418;
+  --color-ink-soft: #33454d;
+  --color-ink-muted: #6b7f88;
+
+  /* Brand — deep clinical teal */
+  --color-brand-50: #eef7f7;
+  --color-brand-100: #d3ebeb;
+  --color-brand-200: #a3d5d5;
+  --color-brand-400: #2f8f90;
+  --color-brand: #0d5f63;
+  --color-brand-700: #0a4a4e;
+  --color-brand-900: #06282b;
+
+  /* Signal accents */
+  --color-signal: #00c2a8;
+  --color-alert: #c8442f;
+
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sharp: 2px;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+/* --- Type primitives ------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* --- Precision rule used to open every section ----------- */
+.rule-tick {
+  position: relative;
+}
+.rule-tick::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2.5rem;
+  height: 2px;
+  background: var(--color-brand);
+}
+
+/* --- Underline that draws in on hover -------------------- */
+.link-draw {
+  position: relative;
+  display: inline-block;
+}
+.link-draw::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-draw:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* --- Mega-menu reveal ------------------------------------ */
+.menu-panel {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.25s;
+}
+.menu-root:hover > .menu-panel,
+.menu-root:focus-within > .menu-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* --- Product card media zoom ----------------------------- */
+.card-media img {
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.group:hover .card-media img {
+  transform: scale(1.06);
+}
+
+/* --- Rich text from the original CMS fields -------------- */
+.prose-clinical p {
+  margin-bottom: 1rem;
+  line-height: 1.75;
+  color: var(--color-ink-soft);
+}
+.prose-clinical h2,
+.prose-clinical h3,
+.prose-clinical h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.0625rem;
+  text-transform: uppercase;
+}
+.prose-clinical ul,
+.prose-clinical ol {
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+.prose-clinical li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+  color: var(--color-ink-soft);
+}
+.prose-clinical li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 6px;
+  height: 1px;
+  background: var(--color-brand-400);
+}
+.prose-clinical strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.prose-clinical > :first-child {
+  margin-top: 0;
+}
+
+/* --- Scrollbar ------------------------------------------- */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-mist); }
+  ::-webkit-scrollbar-thumb { background: var(--color-line-strong); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-brand-400); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
