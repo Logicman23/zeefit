@@ -38,16 +38,32 @@ npm run db:migrate     # prisma migrate dev
 
 ### 4. Apply the Supabase bindings — **required, and not optional**
 
+Apply **all four**, in order — they are cumulative, and 04 undoes part of 01:
+
 ```bash
-psql "$DIRECT_URL" -f prisma/sql/01_auth_bindings.sql
+npx tsx scripts/apply-sql.ts prisma/sql/01_auth_bindings.sql
+npx tsx scripts/apply-sql.ts prisma/sql/02_product_media.sql
+npx tsx scripts/apply-sql.ts prisma/sql/03_orders_rls.sql
+npx tsx scripts/apply-sql.ts prisma/sql/04_lock_staff_creation.sql
 ```
 
-(or paste it into the Supabase SQL editor)
+(each runs in a transaction, so a failure rolls back rather than leaving half a
+trigger behind; or paste them into the Supabase SQL editor in the same order)
 
-This adds the `profiles → auth.users` foreign key, the signup trigger, the JWT
-role hook and the RLS policies. Prisma deliberately does not manage any of it —
-letting `prisma migrate` near Supabase's `auth` schema is how people end up with
-a migration that proposes dropping Supabase's own tables.
+| File | What it does |
+|---|---|
+| `01_auth_bindings.sql` | `profiles → auth.users` FK, JWT role hook, RLS policies — **and a signup trigger that 04 removes** |
+| `02_product_media.sql` | `product-media` storage bucket and its upload/delete policies |
+| `03_orders_rls.sql` | RLS on `orders`/`order_items` — new tables arrive with it **off**, exposing customer addresses to the anon key |
+| `04_lock_staff_creation.sql` | Drops the signup trigger, so registering no longer grants staff access |
+
+**Stopping after 01 leaves a live security hole**: every new sign-up would get an
+`EDITOR` profile. 01 keeps the trigger only so the history reads honestly; if you
+prefer, skip straight past it by applying 04 immediately after.
+
+Prisma deliberately manages none of this — letting `prisma migrate` near
+Supabase's `auth` schema is how people end up with a migration that proposes
+dropping Supabase's own tables.
 
 ### 5. Turn on the JWT hook
 
@@ -59,11 +75,16 @@ Dashboard → **Authentication → Hooks → Customize Access Token** → select
 Dashboard -> **Authentication -> Sign In / Providers** -> turn off new sign-ups.
 
 This used to be the only thing preventing a stranger from becoming an Editor,
-because a trigger gave every new auth user a staff profile. That trigger is gone
-(): registering now creates an
- row and nothing else, and  treats anyone without
-a profile as not staff. Verified by registering while claiming
- in sign-up metadata -- the claim was ignored and no profile
+because `on_auth_user_created` gave every new auth user a staff profile
+defaulting to `EDITOR`. That trigger is gone — see
+`prisma/sql/04_lock_staff_creation.sql`, which must be applied along with the
+other files in that directory.
+
+Registering now creates an `auth.users` row and nothing else, and
+`lib/auth/guard.ts` treats anyone without a profile as not staff. Verified
+against the live database by registering through the public endpoint while
+claiming `{ role: "ADMIN" }` in sign-up metadata — which `signUp()` lets any
+caller set — the account was created, the claim was ignored, and no profile
 appeared.
 
 Still worth switching off so the auth table does not fill with registrations for
