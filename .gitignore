@@ -13,3 +13,6 @@ next-env.d.ts
 # Next.js auto-generated agent rule files
 AGENTS.md
 CLAUDE.md
+
+# Prisma generated client
+/src/generated

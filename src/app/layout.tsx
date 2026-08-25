@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import MegaNav from "@/components/MegaNav";
-import Footer from "@/components/Footer";
-import Newsletter from "@/components/Newsletter";
-import ScrollTop from "@/components/ScrollTop";
 import { site } from "@/data/content";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" });
@@ -17,18 +12,14 @@ export const metadata: Metadata = {
   keywords: site.metaKeywords,
 };
 
+/**
+ * Deliberately bare: fonts, globals and the <body> flex column only.
+ * Storefront chrome lives in (storefront)/layout.tsx; /admin brings its own shell.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${outfit.variable} ${inter.variable}`}>
-      <body className="flex min-h-screen flex-col">
-        <Header>
-          <MegaNav />
-        </Header>
-        <main className="flex-1">{children}</main>
-        <Newsletter />
-        <Footer />
-        <ScrollTop />
-      </body>
+      <body className="flex min-h-screen flex-col">{children}</body>
     </html>
   );
 }

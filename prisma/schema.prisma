@@ -1,0 +1,242 @@
+// ---------------------------------------------------------------------------
+// Zeefit Admin — data model
+//
+// Prisma owns the `public` schema ONLY. Supabase Auth owns `auth`; modelling
+// auth.users here would let `prisma migrate` try to drop Supabase's own tables.
+// Profile.id IS auth.users.id; the FK is added by raw SQL (see prisma/sql/).
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7 removed `url`/`directUrl` from the schema. Migration connection
+// details now live in prisma.config.ts; the runtime connection is supplied by a
+// driver adapter in src/lib/prisma.ts.
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================== ENUMS ======================================
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Mirrors the live site's 3-tier tree so `?id=..&type=..-category` keeps working.
+enum CategoryLevel {
+  TOP
+  MID
+  END
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  UNPUBLISH
+  ARCHIVE
+  RESTORE
+  LOGIN
+  ROLE_CHANGE
+}
+
+// ============================== IDENTITY ===================================
+
+/// One row per staff member, keyed by `auth.users.id`.
+/// This table — not the JWT claim — is the source of truth for a user's role.
+model Profile {
+  id        String  @id @db.Uuid
+  email     String  @unique
+  fullName  String? @map("full_name")
+  avatarUrl String? @map("avatar_url")
+
+  role     Role    @default(EDITOR)
+  /// Soft lock. Revokes access without deleting history or breaking FKs.
+  isActive Boolean @default(true) @map("is_active")
+
+  lastSeenAt DateTime? @map("last_seen_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  productsCreated   Product[]  @relation("ProductCreatedBy")
+  productsUpdated   Product[]  @relation("ProductUpdatedBy")
+  categoriesUpdated Category[] @relation("CategoryUpdatedBy")
+  settingsUpdated   Setting[]  @relation("SettingUpdatedBy")
+  auditLogs         AuditLog[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("profiles")
+}
+
+// ============================== CATALOG ====================================
+
+/// Self-referential tree. `legacyId` + `level` reproduce the live site's numeric
+/// IDs, which are unique only *within* a level (id 1 is simultaneously "Men",
+/// "Men Accessories" and "Headwear") — hence the compound unique rather than a
+/// plain one. This is what keeps /product-category?id=1&type=end-category alive.
+model Category {
+  id       String        @id @default(cuid())
+  legacyId Int           @map("legacy_id")
+  level    CategoryLevel
+
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+  imageUrl    String? @map("image_url")
+
+  parentId String?    @map("parent_id")
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children Category[] @relation("CategoryTree")
+
+  position Int     @default(0)
+  isActive Boolean @default(true) @map("is_active")
+
+  seoTitle       String? @map("seo_title") @db.VarChar(60)
+  seoDescription String? @map("seo_description") @db.VarChar(160)
+
+  products Product[]
+
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedBy   Profile? @relation("CategoryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([legacyId, level])
+  @@index([parentId, position])
+  @@index([level, isActive])
+  @@map("categories")
+}
+
+model Product {
+  id       String @id @default(cuid())
+  /// Preserves /product?id=83 for existing inbound links. Null for new products.
+  legacyId Int?   @unique @map("legacy_id")
+
+  // --- Basic info ---
+  title String
+  /// Auto-derived from `title`, but editable. Uniqueness spans every status,
+  /// including ARCHIVED and soft-deleted rows — a freed slug is freed
+  /// explicitly, never silently reused by a new product inheriting its history.
+  slug  String @unique
+  sku   String @unique
+
+  /// Sanitised HTML from the rich-text editor.
+  shortDescription String? @map("short_description") @db.Text
+  description      String? @db.Text
+  features         String? @db.Text
+  conditions       String? @db.Text
+  returnPolicy     String? @map("return_policy") @db.Text
+
+  // --- Pricing & inventory ---
+  price          Decimal  @db.Decimal(10, 2)
+  /// Struck-through "was" price. Must exceed `price` to render a discount badge.
+  compareAtPrice Decimal? @map("compare_at_price") @db.Decimal(10, 2)
+  costPrice      Decimal? @map("cost_price") @db.Decimal(10, 2)
+  currency       String   @default("AED") @db.Char(3)
+
+  stock             Int     @default(0)
+  lowStockThreshold Int     @default(5) @map("low_stock_threshold")
+  trackInventory    Boolean @default(true) @map("track_inventory")
+  weightGrams       Int?    @map("weight_grams")
+
+  // --- Taxonomy ---
+  /// Always the END-level (leaf) category. TOP/MID are derived by walking up.
+  categoryId String   @map("category_id")
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  // --- Media & options ---
+  primaryImage String   @default("") @map("primary_image")
+  gallery      String[] @default([])
+  sizes        String[] @default([])
+  colors       String[] @default([])
+
+  // --- SEO ---
+  /// Hard ceilings match Google's SERP truncation. Enforced first in Zod so the
+  /// editor sees a live counter rather than a Postgres 22001 error.
+  seoTitle       String?  @map("seo_title") @db.VarChar(60)
+  seoDescription String?  @map("seo_description") @db.VarChar(160)
+  seoKeywords    String[] @default([]) @map("seo_keywords")
+  canonicalUrl   String?  @map("canonical_url")
+  ogImageUrl     String?  @map("og_image_url")
+  noIndex        Boolean  @default(false) @map("no_index")
+
+  // --- Lifecycle ---
+  status      ProductStatus @default(DRAFT)
+  /// Stamped on the first DRAFT -> PUBLISHED transition. Drives sitemap + sort.
+  publishedAt DateTime?     @map("published_at")
+  /// Soft delete (ADMIN only). Keeps FKs intact for future order history.
+  deletedAt   DateTime?     @map("deleted_at")
+  isFeatured  Boolean       @default(false) @map("is_featured")
+
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdBy   Profile? @relation("ProductCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedBy   Profile? @relation("ProductUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([categoryId, status])
+  @@index([deletedAt])
+  @@index([isFeatured, status])
+  @@index([createdAt(sort: Desc)])
+  @@map("products")
+}
+
+// ============================== GOVERNANCE =================================
+
+/// Append-only. Written in the same transaction as the mutation it records.
+/// With Editors publishing directly, this is the only record of who put what live.
+model AuditLog {
+  id String @id @default(cuid())
+
+  actorId String?  @map("actor_id") @db.Uuid
+  actor   Profile? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  /// Denormalised so the trail survives the actor's profile being deleted.
+  actorEmail String @map("actor_email")
+  actorRole  Role   @map("actor_role")
+
+  action   AuditAction
+  entity   String // "Product" | "Category" | "Profile" | "Setting"
+  entityId String? @map("entity_id")
+  summary  String?
+  /// { field: { from, to } } — never store secrets here.
+  diff     Json?
+
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([entity, entityId])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+/// Global settings — ADMIN only, both read and write.
+model Setting {
+  key   String @id
+  value Json
+  group String @default("general")
+
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedBy   Profile? @relation("SettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([group])
+  @@map("settings")
+}
