@@ -166,13 +166,28 @@ Hiding a button is a courtesy. The server-side re-check is the control.
 ## What is built, and what is not
 
 **Built:** authentication and RBAC end to end, the dashboard, the full product
-list (search, status filter, sortable columns, pagination, row actions), and the
-Add/Edit product form with the live SERP preview.
+list (search, status filter, sortable columns, pagination, row actions), the
+Add/Edit product form with the live SERP preview and image uploads to Supabase
+Storage, and the category tree manager.
 
-**Stubbed — the nav links exist, the pages do not:** `/admin/categories`,
-`/admin/users`, `/admin/settings`. They are gated already, so an Editor reaching
-them gets a 403 rather than a page; they simply have no UI yet.
+**The storefront reads from Postgres.** Publishing in the panel puts a product
+on the site. Canonical product URLs are ; the original
+ links 308-redirect to them, so indexed URLs keep their
+ranking instead of splitting it across two addresses.
 
-**Not started:** image uploads to Supabase Storage (the media fields take paths
-or URLs for now), and wiring the storefront to read from Postgres instead of
-`src/data/*.ts`.
+Storefront pages are ISR () and every catalogue mutation calls
+, so an edit appears immediately rather than
+waiting out the window. The layout purge is deliberate: the navigation tree is
+rendered in the shared layout, so purging one page would leave a stale menu.
+
+**Stubbed — the nav links exist, the pages do not:** ,
+. They are gated already, so an Editor reaching them gets a
+403; they simply have no UI yet. Staff accounts are still created in the
+Supabase dashboard.
+
+**Known gaps:**
+- Product images are uploaded but not resized or cropped on upload; a 5 MB
+  photo is served at 5 MB (next/image does resize on delivery).
+- Popular on the homepage is alphabetical. No behavioural data exists yet, so
+  there is nothing honest to rank by.
+- No sitemap.xml yet, though  exists for it.

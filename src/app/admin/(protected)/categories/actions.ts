@@ -12,6 +12,17 @@ export type CategoryActionState = {
   fieldErrors?: Record<string, string>;
 };
 
+
+/**
+ * Purges the cached storefront. Publishing is worthless if the change waits out
+ * an ISR window, so every catalogue mutation drops the whole storefront cache —
+ * the navigation tree lives in the shared layout, so a single page purge would
+ * leave a stale menu behind.
+ */
+function revalidateStorefront() {
+  revalidatePath("/", "layout");
+}
+
 async function requestMeta() {
   const h = await headers();
   return {
@@ -114,6 +125,7 @@ export async function createCategory(
 
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products/new");
+  revalidateStorefront();
   return { ok: true };
 }
 
@@ -185,6 +197,7 @@ export async function updateCategory(
 
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products/new");
+  revalidateStorefront();
   return { ok: true };
 }
 
@@ -237,6 +250,7 @@ export async function deleteCategory(id: string) {
 
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products/new");
+  revalidateStorefront();
   return { ok: true };
 }
 
@@ -266,5 +280,6 @@ export async function toggleCategoryActive(id: string, isActive: boolean) {
   });
 
   revalidatePath("/admin/categories");
+  revalidateStorefront();
   return { ok: true };
 }

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { catalog, categoryHref } from "@/data/catalog";
+import { categoryHref } from "@/data/catalog";
+import type { TopCategory } from "@/lib/storefront";
 
 /**
  * The original category page rendered the entire 55-node tree in a left rail on
@@ -13,7 +14,17 @@ import { catalog, categoryHref } from "@/data/catalog";
  * disclosure that sits above the grid — visible without scrolling, but closed
  * by default.
  */
-function Tree({ activeId, activeType, onNavigate }: { activeId: number; activeType: string; onNavigate?: () => void }) {
+function Tree({
+  activeId,
+  activeType,
+  catalog,
+  onNavigate,
+}: {
+  activeId: number;
+  activeType: string;
+  catalog: TopCategory[];
+  onNavigate?: () => void;
+}) {
   const isActive = (id: number, type: string) => id === activeId && type === activeType;
 
   return (
@@ -68,7 +79,16 @@ function Tree({ activeId, activeType, onNavigate }: { activeId: number; activeTy
   );
 }
 
-export default function CategorySidebar({ activeId, activeType }: { activeId: number; activeType: string }) {
+export default function CategorySidebar({
+  activeId,
+  activeType,
+  catalog,
+}: {
+  activeId: number;
+  activeType: string;
+  /** Passed down from the server page — a client component cannot query. */
+  catalog: TopCategory[];
+}) {
   const [open, setOpen] = useState(false);
   const endCount = catalog.reduce((a, t) => a + t.children.reduce((b, m) => b + m.children.length, 0), 0);
 
@@ -106,7 +126,7 @@ export default function CategorySidebar({ activeId, activeType }: { activeId: nu
         >
           <div className="overflow-hidden">
             <nav aria-label="Categories" className="border border-t-0 border-line px-5 py-6">
-              <Tree activeId={activeId} activeType={activeType} onNavigate={() => setOpen(false)} />
+              <Tree activeId={activeId} activeType={activeType} catalog={catalog} onNavigate={() => setOpen(false)} />
             </nav>
           </div>
         </div>
@@ -116,7 +136,7 @@ export default function CategorySidebar({ activeId, activeType }: { activeId: nu
       <nav aria-label="Categories" className="hidden lg:block lg:sticky lg:top-44">
         <h2 className="eyebrow border-b border-line pb-3 text-brand">Categories</h2>
         <div className="mt-6">
-          <Tree activeId={activeId} activeType={activeType} />
+          <Tree activeId={activeId} activeType={activeType} catalog={catalog} />
         </div>
       </nav>
     </>

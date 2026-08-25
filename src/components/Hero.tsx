@@ -1,19 +1,21 @@
 import HeroSlider, { type Slide } from "./HeroSlider";
 import { hero } from "@/data/content";
-import { productsInCategory } from "@/data/products";
+import { getProductsInCategory } from "@/lib/storefront";
 import { aed } from "@/lib/format";
 
 /** Cheapest live price in a category, so slide copy can never go stale. */
-function from(id: number, type: string): string | null {
-  const items = productsInCategory(id, type);
+async function from(id: number, type: string): Promise<string | null> {
+  const items = await getProductsInCategory(id, type);
   if (!items.length) return null;
   return aed(Math.min(...items.map((p) => p.price)));
 }
 
-export default function Hero() {
-  const medicalFrom = from(6, "top-category");
-  const sportFrom = from(36, "end-category");
-  const leggingsFrom = from(35, "end-category");
+export default async function Hero() {
+  const [medicalFrom, sportFrom, leggingsFrom] = await Promise.all([
+    from(6, "top-category"),
+    from(36, "end-category"),
+    from(35, "end-category"),
+  ]);
 
   const slides: Slide[] = [
     // Slide 1 — the original site's hero copy, reproduced word-for-word.

@@ -5,13 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MobileNav from "./MobileNav";
 import { site } from "@/data/content";
+import type { TopCategory } from "@/lib/storefront";
 
 const LANGS = [
   { code: "en", label: "English", flag: "https://flagcdn.com/24x18/gb.png" },
   { code: "ar", label: "العربية", flag: "https://flagcdn.com/24x18/ae.png" },
 ];
 
-export default function Header({ children }: { children: React.ReactNode }) {
+export default function Header({
+  children,
+  catalog,
+}: {
+  children: React.ReactNode;
+  catalog: TopCategory[];
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [lang, setLang] = useState(LANGS[0]);
@@ -203,7 +210,7 @@ export default function Header({ children }: { children: React.ReactNode }) {
       </div>
 
       {children}
-      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} catalog={catalog} />
     </header>
   );
 }

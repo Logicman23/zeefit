@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Product } from "@/data/products";
+import type { StoreProduct } from "@/lib/storefront";
 import { aed, discountPct } from "@/lib/format";
 
 /** Card content matches the original: image, title, new price, struck old price, "Buy Now". */
-export default function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
+export default function ProductCard({ product, priority = false }: { product: StoreProduct; priority?: boolean }) {
   const off = discountPct(product.price, product.oldPrice);
-  const href = `/product?id=${product.id}`;
+  // Slug, not the legacy numeric id: products created in the admin panel have
+  // no legacy id, and the slug is the canonical URL for every product.
+  const href = `/product/${product.slug}`;
 
   return (
     <article className="group flex flex-col">

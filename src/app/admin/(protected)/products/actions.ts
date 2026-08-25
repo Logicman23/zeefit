@@ -14,6 +14,17 @@ export type ProductActionState = {
   fieldErrors?: Record<string, string>;
 };
 
+
+/**
+ * Purges the cached storefront. Publishing is worthless if the change waits out
+ * an ISR window, so every catalogue mutation drops the whole storefront cache —
+ * the navigation tree lives in the shared layout, so a single page purge would
+ * leave a stale menu behind.
+ */
+function revalidateStorefront() {
+  revalidatePath("/", "layout");
+}
+
 async function requestMeta() {
   const h = await headers();
   return {
@@ -133,6 +144,7 @@ export async function createProduct(
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");
+  revalidateStorefront();
   // redirect() throws a control-flow signal — it must sit outside the try block
   // or the catch above would swallow it and report a save failure.
   redirect(`/admin/products/${newId}?saved=1`);
@@ -209,6 +221,7 @@ export async function updateProduct(
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${id}`);
   revalidatePath("/admin");
+  revalidateStorefront();
   return { ok: true };
 }
 
@@ -256,6 +269,7 @@ export async function setProductStatus(id: string, status: ProductStatus) {
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");
+  revalidateStorefront();
   return { ok: true };
 }
 
@@ -300,5 +314,6 @@ export async function deleteProduct(id: string) {
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");
+  revalidateStorefront();
   return { ok: true };
 }

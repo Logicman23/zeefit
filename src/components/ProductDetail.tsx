@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Product } from "@/data/products";
+import type { StoreProduct as Product } from "@/lib/storefront";
 import { aed, discountPct } from "@/lib/format";
 
 const TABS = [

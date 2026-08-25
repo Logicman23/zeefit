@@ -1,23 +1,28 @@
 import Link from "next/link";
 import CategorySidebar from "@/components/CategorySidebar";
 import ProductCard from "@/components/ProductCard";
-import { findCategory } from "@/data/catalog";
-import { productsInCategory } from "@/data/products";
+import { findCategory, getProductsInCategory, getCatalog } from "@/lib/storefront";
 
 type Params = { searchParams: Promise<{ id?: string; type?: string }> };
 
 export async function generateMetadata({ searchParams }: Params) {
   const sp = await searchParams;
-  const cat = findCategory(Number(sp.id), sp.type ?? "");
+  const cat = await findCategory(Number(sp.id), sp.type ?? "");
   return { title: cat ? `Category: ${cat.name}` : "ZEE FIT " };
 }
+
+/**
+ * Cached and re-rendered at most once a minute. Publishing from the admin
+ * panel purges this immediately, so an edit does not wait out the window.
+ */
+export const revalidate = 60;
 
 export default async function CategoryPage({ searchParams }: Params) {
   const sp = await searchParams;
   const id = Number(sp.id);
   const type = sp.type ?? "top-category";
-  const cat = findCategory(id, type);
-  const items = cat ? productsInCategory(id, type) : [];
+  const [cat, catalog] = await Promise.all([findCategory(id, type), getCatalog()]);
+  const items = cat ? await getProductsInCategory(id, type) : [];
 
   return (
     <div className="mx-auto max-w-[1400px] px-6">
@@ -49,7 +54,7 @@ export default async function CategoryPage({ searchParams }: Params) {
 
       <div className="grid gap-12 py-12 lg:grid-cols-[16rem_1fr] lg:gap-16 lg:py-16">
         <aside className="order-1">
-          <CategorySidebar activeId={id} activeType={type} />
+          <CategorySidebar activeId={id} activeType={type} catalog={catalog} />
         </aside>
 
         <div className="order-2">
@@ -60,7 +65,7 @@ export default async function CategoryPage({ searchParams }: Params) {
           {items.length > 0 ? (
             <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-12 lg:grid-cols-3 lg:gap-x-8">
               {items.map((p, i) => (
-                <ProductCard key={p.id} product={p} priority={i < 3} />
+                <ProductCard key={p.slug} product={p} priority={i < 3} />
               ))}
             </div>
           ) : (

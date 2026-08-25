@@ -1,8 +1,31 @@
 import type { NextConfig } from "next";
 
+/**
+ * next/image refuses any remote host that is not allow-listed, so images
+ * uploaded to Supabase Storage would otherwise throw at render time. Derived
+ * from the env var rather than hardcoded, so pointing the app at a different
+ * Supabase project does not silently break every product photo.
+ */
+const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? URL.canParse(process.env.NEXT_PUBLIC_SUPABASE_URL)
+    ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+    : undefined
+  : undefined;
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  images: { formats: ["image/avif", "image/webp"] },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: supabaseHostname
+      ? [
+          {
+            protocol: "https",
+            hostname: supabaseHostname,
+            pathname: "/storage/v1/object/public/**",
+          },
+        ]
+      : [],
+  },
   // Enables forbidden()/unauthorized() so a permission failure renders a real
   // 403 boundary instead of being flattened into a 404.
   experimental: { authInterrupts: true },

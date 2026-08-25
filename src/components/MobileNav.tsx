@@ -3,13 +3,23 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { catalog, staticLinks, categoryHref } from "@/data/catalog";
+import { staticLinks, categoryHref } from "@/data/catalog";
+import type { TopCategory } from "@/lib/storefront";
 
 /**
  * Mobile drawer. Same hierarchy and ordering as the desktop mega menu,
  * expressed as progressive accordions so the 3 levels stay navigable on small screens.
  */
-export default function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function MobileNav({
+  open,
+  onClose,
+  catalog,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Passed down from the server layout — a client component cannot query. */
+  catalog: TopCategory[];
+}) {
   const [openTop, setOpenTop] = useState<number | null>(null);
   const [openMid, setOpenMid] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);

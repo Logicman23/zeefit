@@ -1,15 +1,21 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
-import { searchProducts } from "@/data/products";
+import { searchProducts } from "@/lib/storefront";
 
 type Params = { searchParams: Promise<{ search_text?: string }> };
 
 export const metadata = { title: "Search Result" };
 
+/**
+ * Cached and re-rendered at most once a minute. Publishing from the admin
+ * panel purges this immediately, so an edit does not wait out the window.
+ */
+export const revalidate = 60;
+
 export default async function SearchResultPage({ searchParams }: Params) {
   const sp = await searchParams;
   const q = sp.search_text ?? "";
-  const results = searchProducts(q);
+  const results = await searchProducts(q);
 
   return (
     <div className="mx-auto max-w-[1400px] px-6">
@@ -24,7 +30,7 @@ export default async function SearchResultPage({ searchParams }: Params) {
       {results.length > 0 ? (
         <div className="grid grid-cols-2 gap-x-5 gap-y-12 py-12 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-8 lg:py-16">
           {results.map((p, i) => (
-            <ProductCard key={p.id} product={p} priority={i < 4} />
+            <ProductCard key={p.slug} product={p} priority={i < 4} />
           ))}
         </div>
       ) : (

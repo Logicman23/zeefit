@@ -3,8 +3,14 @@ import Hero from "@/components/Hero";
 import ProductCard from "@/components/ProductCard";
 import SectionHead from "@/components/SectionHead";
 import { services, homeSections } from "@/data/content";
-import { pick, featuredIds, latestIds, popularIds } from "@/data/products";
-import { catalog, categoryHref } from "@/data/catalog";
+import { categoryHref } from "@/data/catalog";
+import {
+  getFeatured,
+  getLatest,
+  getPopular,
+  getCatalog,
+  type StoreProduct,
+} from "@/lib/storefront";
 
 const SERVICE_ICONS = [
   "M2 8h12M6 4L2 8l4 4",                                   // Easy Returns
@@ -23,7 +29,7 @@ function ProductRow({
 }: {
   title: string;
   sub: string;
-  items: ReturnType<typeof pick>;
+  items: StoreProduct[];
   priority?: boolean;
 }) {
   if (!items.length) return null;
@@ -32,14 +38,28 @@ function ProductRow({
       <SectionHead title={title} sub={sub} />
       <div className="mt-12 grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-8">
         {items.map((p, i) => (
-          <ProductCard key={p.id} product={p} priority={priority && i < 4} />
+          <ProductCard key={p.slug} product={p} priority={priority && i < 4} />
         ))}
       </div>
     </section>
   );
 }
 
-export default function Home() {
+/**
+ * Cached and re-rendered at most once a minute. Publishing from the admin
+ * panel purges this immediately, so an edit does not wait out the window.
+ */
+export const revalidate = 60;
+
+export default async function Home() {
+  // One round trip each, in parallel — the homepage is the most-hit page.
+  const [featured, latest, popular, catalog] = await Promise.all([
+    getFeatured(),
+    getLatest(),
+    getPopular(),
+    getCatalog(),
+  ]);
+
   return (
     <>
       <Hero />
@@ -74,7 +94,7 @@ export default function Home() {
       <ProductRow
         title={homeSections.featured.title}
         sub={homeSections.featured.sub}
-        items={pick(featuredIds)}
+        items={featured}
         priority
       />
 
@@ -112,11 +132,11 @@ export default function Home() {
         </div>
       </section>
 
-      <ProductRow title={homeSections.latest.title} sub={homeSections.latest.sub} items={pick(latestIds)} />
+      <ProductRow title={homeSections.latest.title} sub={homeSections.latest.sub} items={latest} />
 
       <div className="border-t border-line" />
 
-      <ProductRow title={homeSections.popular.title} sub={homeSections.popular.sub} items={pick(popularIds)} />
+      <ProductRow title={homeSections.popular.title} sub={homeSections.popular.sub} items={popular} />
     </>
   );
 }

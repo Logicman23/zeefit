@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { catalog, staticLinks, categoryHref } from "@/data/catalog";
+import { staticLinks, categoryHref } from "@/data/catalog";
+import { getCatalog } from "@/lib/storefront";
 
 /**
  * Desktop navigation. Reproduces the original 3-level hierarchy exactly:
  * top-category -> mid-category -> end-category, same labels, same order.
  * Rendered as a full-width mega panel instead of the original cascading flyouts.
  */
-export default function MegaNav() {
+export default async function MegaNav() {
+  const catalog = await getCatalog();
   return (
     <nav aria-label="Primary" className="hidden lg:block border-t border-line bg-paper">
       <div className="mx-auto max-w-[1400px] px-6">
