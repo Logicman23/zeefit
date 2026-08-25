@@ -35,6 +35,12 @@ const NAV: NavItem[] = [
     icon: <path d="M10 2l7 4v8l-7 4-7-4V6zM3 6l7 4 7-4M10 10v8" fill="none" strokeWidth="1.5" stroke="currentColor" />,
   },
   {
+    href: "/admin/orders",
+    label: "Orders",
+    permission: "order:read",
+    icon: <path d="M4 3h9l3 3v11H4zM13 3v3h3M7 10h6M7 13h4" fill="none" strokeWidth="1.5" stroke="currentColor" />,
+  },
+  {
     href: "/admin/categories",
     label: "Categories",
     permission: "category:read",

@@ -21,6 +21,8 @@ export type Permission =
   | "user:write"
   | "settings:read"
   | "settings:write"
+  | "order:read"
+  | "order:write"
   | "audit:read";
 
 /**
@@ -45,6 +47,11 @@ const ADMIN_PERMISSIONS = [
   "media:delete",
   "user:read",
   "user:write",
+  // Orders carry customer names, phone numbers and home addresses. Kept to
+  // ADMIN because the approved brief scoped Editors to the catalogue; move
+  // "order:read" into EDITOR_PERMISSIONS if Editors should fulfil orders.
+  "order:read",
+  "order:write",
   "settings:read",
   "settings:write",
   "audit:read",

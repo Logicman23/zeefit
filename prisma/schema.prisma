@@ -66,12 +66,16 @@ model Profile {
 
   lastSeenAt DateTime? @map("last_seen_at")
   createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  /// Needs a database default as well as @updatedAt: the on_auth_user_created
+  /// trigger inserts (id, email, full_name, role) only, so without one every
+  /// trigger-created staff row would fail its NOT NULL constraint.
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at")
 
   productsCreated   Product[]  @relation("ProductCreatedBy")
   productsUpdated   Product[]  @relation("ProductUpdatedBy")
   categoriesUpdated Category[] @relation("CategoryUpdatedBy")
   settingsUpdated   Setting[]  @relation("SettingUpdatedBy")
+  ordersHandled     Order[]    @relation("OrderHandledBy")
   auditLogs         AuditLog[]
 
   @@index([role])
@@ -185,6 +189,8 @@ model Product {
   updatedById String?  @map("updated_by_id") @db.Uuid
   updatedBy   Profile? @relation("ProductUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
+  orderItems OrderItem[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -239,4 +245,93 @@ model Setting {
 
   @@index([group])
   @@map("settings")
+}
+
+// ============================== ORDERS =====================================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+  BANK_TRANSFER
+}
+
+/// A placed order. Cash on delivery: no payment is taken online, so an order is
+/// a commitment to fulfil rather than a completed transaction.
+model Order {
+  id String @id @default(cuid())
+  /// Human-facing reference the customer quotes on the phone, e.g. ZF-2608-K3M9QP.
+  reference String @unique
+
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(COD) @map("payment_method")
+
+  // --- Customer ---
+  customerName  String  @map("customer_name")
+  customerEmail String? @map("customer_email")
+  customerPhone String  @map("customer_phone")
+  addressLine1  String  @map("address_line1")
+  addressLine2  String? @map("address_line2")
+  city          String
+  emirate       String
+  notes         String? @db.Text
+
+  // --- Money, snapshotted at the moment of the order ---
+  subtotal Decimal @db.Decimal(10, 2)
+  shipping Decimal @default(0) @db.Decimal(10, 2)
+  total    Decimal @db.Decimal(10, 2)
+  currency String  @default("AED") @db.Char(3)
+
+  items OrderItem[]
+
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent")
+  placedAt  DateTime  @default(now()) @map("placed_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  /// The staff member who last moved this order along.
+  handledById String?  @map("handled_by_id") @db.Uuid
+  handledBy   Profile? @relation("OrderHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+
+  @@index([status, placedAt(sort: Desc)])
+  @@index([placedAt(sort: Desc)])
+  @@index([customerPhone])
+  @@map("orders")
+}
+
+/// One line of an order.
+///
+/// Every customer-visible field is SNAPSHOTTED rather than read through the
+/// product relation: an order is a record of what was agreed at the time. If a
+/// price changes next week, or the product is renamed or deleted, this line must
+/// still say what the customer actually bought and paid.
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String @map("order_id")
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// Kept for reporting; nulled rather than blocking a product deletion.
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  titleSnapshot String  @map("title_snapshot")
+  slugSnapshot  String  @map("slug_snapshot")
+  skuSnapshot   String  @map("sku_snapshot")
+  imageSnapshot String  @default("") @map("image_snapshot")
+
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  qty       Int
+  size      String  @default("")
+  color     String  @default("")
+  lineTotal Decimal @map("line_total") @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
 }

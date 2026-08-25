@@ -9,7 +9,7 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "db:migrate": "npm run db:check && prisma migrate dev",
+    "db:migrate": "npm run db:check && tsx scripts/migrate-safe.ts",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "npm run db:check && prisma db seed",
     "db:studio": "prisma studio",
