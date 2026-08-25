@@ -37,6 +37,14 @@ const EDITOR_PERMISSIONS = [
   "product:archive",
   "category:read",
   "media:upload",
+  // Editors fulfil orders: they see the queue and move an order along the
+  // Pending -> Confirmed -> Shipped -> Delivered path, cancelling included.
+  //
+  // NOTE: this necessarily shows them customer names, phone numbers and home
+  // addresses. Unavoidable for anyone arranging a delivery, but it is real
+  // personal data — remove these two lines to take the section back.
+  "order:read",
+  "order:write",
 ] as const satisfies readonly Permission[];
 
 const ADMIN_PERMISSIONS = [
@@ -47,11 +55,6 @@ const ADMIN_PERMISSIONS = [
   "media:delete",
   "user:read",
   "user:write",
-  // Orders carry customer names, phone numbers and home addresses. Kept to
-  // ADMIN because the approved brief scoped Editors to the catalogue; move
-  // "order:read" into EDITOR_PERMISSIONS if Editors should fulfil orders.
-  "order:read",
-  "order:write",
   "settings:read",
   "settings:write",
   "audit:read",
