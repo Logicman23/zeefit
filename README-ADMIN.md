@@ -170,24 +170,34 @@ list (search, status filter, sortable columns, pagination, row actions), the
 Add/Edit product form with the live SERP preview and image uploads to Supabase
 Storage, and the category tree manager.
 
-**The storefront reads from Postgres.** Publishing in the panel puts a product
-on the site. Canonical product URLs are ; the original
- links 308-redirect to them, so indexed URLs keep their
-ranking instead of splitting it across two addresses.
+**The storefront reads from Postgres.** Publishing in the panel puts a product on
+the site. Canonical product URLs are `/product/<slug>`; the original
+`/product?id=<number>` links 308-redirect to them, so indexed URLs keep their
+ranking instead of splitting it across two addresses. Products created in the
+panel have no legacy numeric id, so the slug is the only address they could ever
+have had.
 
-Storefront pages are ISR () and every catalogue mutation calls
-, so an edit appears immediately rather than
-waiting out the window. The layout purge is deliberate: the navigation tree is
-rendered in the shared layout, so purging one page would leave a stale menu.
+Storefront pages are ISR (`export const revalidate = 60`) and every catalogue
+mutation calls `revalidatePath("/", "layout")`, so an edit appears immediately
+rather than waiting out the window. The layout-wide purge is deliberate: the
+navigation tree is rendered in the shared layout, so purging a single page would
+leave a stale menu behind it.
 
-**Stubbed — the nav links exist, the pages do not:** ,
-. They are gated already, so an Editor reaching them gets a
-403; they simply have no UI yet. Staff accounts are still created in the
-Supabase dashboard.
+**Stubbed — the nav links exist, the pages do not:** `/admin/users`,
+`/admin/settings`. They are gated already, so an Editor reaching them gets a 403;
+they simply have no UI yet. Staff accounts are still created in the Supabase
+dashboard.
 
 **Known gaps:**
-- Product images are uploaded but not resized or cropped on upload; a 5 MB
-  photo is served at 5 MB (next/image does resize on delivery).
-- Popular on the homepage is alphabetical. No behavioural data exists yet, so
+
+- `next/image` allow-lists the Supabase Storage host, derived from
+  `NEXT_PUBLIC_SUPABASE_URL`. Serving product images from any other origin needs
+  a matching `remotePatterns` entry in `next.config.ts`, or every image throws at
+  render and takes the page to a 500.
+- Uploads are not resized or re-encoded on the way in, so a 5 MB photo occupies
+  5 MB of storage. `next/image` resizes on delivery, so this costs storage rather
+  than page weight.
+- "Popular" on the homepage is alphabetical. No behavioural data exists yet, so
   there is nothing honest to rank by.
-- No sitemap.xml yet, though  exists for it.
+- No `sitemap.xml` yet, though `getAllProductSlugs()` in `src/lib/storefront.ts`
+  exists to build one.
