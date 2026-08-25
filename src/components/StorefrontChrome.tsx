@@ -5,6 +5,7 @@ import Newsletter from "@/components/Newsletter";
 import ScrollTop from "@/components/ScrollTop";
 import { getCatalog } from "@/lib/storefront";
 import { getSettings } from "@/lib/settings";
+import { CartProvider } from "@/lib/cart/CartContext";
 
 /**
  * Storefront chrome, lifted out of the root layout so `/admin` can opt out of it.
@@ -15,7 +16,7 @@ export default async function StorefrontChrome({ children }: { children: React.R
   const [catalog, settings] = await Promise.all([getCatalog(), getSettings()]);
 
   return (
-    <>
+    <CartProvider>
       <Header catalog={catalog} storeName={String(settings["store.name"])}>
         <MegaNav />
       </Header>
@@ -23,6 +24,6 @@ export default async function StorefrontChrome({ children }: { children: React.R
       <Newsletter />
       <Footer />
       <ScrollTop />
-    </>
+    </CartProvider>
   );
 }

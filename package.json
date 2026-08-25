@@ -14,7 +14,8 @@
     "db:seed": "npm run db:check && prisma db seed",
     "db:studio": "prisma studio",
     "verify:seed": "tsx scripts/verify-seed-mapping.ts",
-    "db:check": "tsx scripts/check-db-empty.ts"
+    "db:check": "tsx scripts/check-db-empty.ts",
+    "verify:cart": "tsx scripts/verify-cart.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",

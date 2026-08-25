@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MobileNav from "./MobileNav";
 import { site } from "@/data/content";
+import { useCart } from "@/lib/cart/CartContext";
+import { aed } from "@/lib/format";
 import type { TopCategory } from "@/lib/storefront";
 
 const LANGS = [
@@ -28,6 +30,7 @@ export default function Header({
   const [q, setQ] = useState("");
   const [stuck, setStuck] = useState(false);
   const router = useRouter();
+  const cart = useCart();
 
   useEffect(() => {
     const onScroll = () => setStuck(window.scrollY > 8);
@@ -163,7 +166,7 @@ export default function Header({
             {/* Cart — label reproduced verbatim */}
             <Link
               href="/cart"
-              className="ml-1 flex items-center gap-2.5 border border-line px-3 py-2.5 transition-colors hover:border-brand hover:bg-brand hover:text-paper"
+              className="relative ml-1 flex items-center gap-2.5 border border-line px-3 py-2.5 transition-colors hover:border-brand hover:bg-brand hover:text-paper"
             >
               <svg
                 viewBox="0 0 18 18"
@@ -177,7 +180,17 @@ export default function Header({
                 <circle cx="7" cy="15.5" r="1.4" />
                 <circle cx="14" cy="15.5" r="1.4" />
               </svg>
-              <span className="hidden text-[0.8125rem] font-medium sm:inline">Cart (AED0.00)</span>
+              {/* cart.ready guards the first paint: the server cannot know
+                  what is in localStorage, so rendering a count before it is
+                  read would be a hydration mismatch. */}
+              {cart.ready && cart.count > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-brand px-1 text-[0.625rem] font-semibold text-paper">
+                  {cart.count}
+                </span>
+              )}
+              <span className="hidden text-[0.8125rem] font-medium sm:inline">
+                Cart ({cart.ready ? aed(cart.subtotal) : "AED0.00"})
+              </span>
             </Link>
           </div>
         </div>

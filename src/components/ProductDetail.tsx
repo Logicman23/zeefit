@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { StoreProduct as Product } from "@/lib/storefront";
 import { aed, discountPct } from "@/lib/format";
+import { useCart } from "@/lib/cart/CartContext";
 
 const TABS = [
   { key: "description", label: "Product Description" },
@@ -20,7 +22,32 @@ export default function ProductDetail({ product }: { product: Product }) {
   const [color, setColor] = useState(product.colors[0] ?? "");
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("description");
+  const [added, setAdded] = useState(false);
   const off = discountPct(product.price, product.oldPrice);
+  const cart = useCart();
+  const router = useRouter();
+
+  const line = {
+    slug: product.slug,
+    name: product.name,
+    price: product.price,
+    image: product.image,
+    size,
+    color,
+  };
+
+  function addToCart() {
+    cart.add(line, qty);
+    setAdded(true);
+    // Confirmation is transient: a permanently green button would be lying by
+    // the time the shopper comes back to this page.
+    window.setTimeout(() => setAdded(false), 2500);
+  }
+
+  function buyNow() {
+    cart.add(line, qty);
+    router.push("/checkout");
+  }
 
   return (
     <>
@@ -152,10 +179,20 @@ export default function ProductDetail({ product }: { product: Product }) {
           </div>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <button className="flex-1 border border-ink bg-paper px-8 py-4 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-ink transition-colors duration-300 hover:bg-ink hover:text-paper">
-              Add to Cart
+            <button
+              type="button"
+              onClick={addToCart}
+              disabled={!product.inStock}
+              className="flex-1 border border-ink bg-paper px-8 py-4 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-ink transition-colors duration-300 hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:border-line disabled:text-ink-muted disabled:hover:bg-paper"
+            >
+              {added ? "Added ✓" : product.inStock ? "Add to Cart" : "Out of Stock"}
             </button>
-            <button className="flex-1 bg-brand px-8 py-4 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-paper transition-colors duration-300 hover:bg-ink">
+            <button
+              type="button"
+              onClick={buyNow}
+              disabled={!product.inStock}
+              className="flex-1 bg-brand px-8 py-4 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-paper transition-colors duration-300 hover:bg-ink disabled:cursor-not-allowed disabled:bg-line-strong"
+            >
               Buy Now
             </button>
           </div>
