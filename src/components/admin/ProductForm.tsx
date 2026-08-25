@@ -73,6 +73,31 @@ export const EMPTY_PRODUCT: ProductDefaults = {
   isFeatured: false,
 };
 
+/** Human labels for the validation summary — field names are not user-facing. */
+const FIELD_LABELS: Record<string, string> = {
+  title: "Product title",
+  slug: "URL slug",
+  sku: "SKU",
+  categoryId: "Category",
+  shortDescription: "Short description",
+  description: "Full description",
+  features: "Key features",
+  conditions: "Conditions & notes",
+  returnPolicy: "Return policy",
+  price: "Price",
+  compareAtPrice: "Compare at price",
+  costPrice: "Cost",
+  stock: "Stock",
+  lowStockThreshold: "Low stock threshold",
+  weightGrams: "Weight",
+  primaryImage: "Primary image",
+  gallery: "Gallery",
+  seoTitle: "Search title",
+  seoDescription: "Search description",
+  canonicalUrl: "Canonical URL",
+  status: "Status",
+};
+
 export default function ProductForm({
   action,
   categories,
@@ -153,6 +178,34 @@ export default function ProductForm({
         <p className="mb-6 rounded-[2px] border border-alert/30 bg-alert/5 px-4 py-3 text-[0.875rem] text-alert" role="alert">
           {err._form}
         </p>
+      )}
+
+      {/* A 30-field form spread over five sections can hide a single failing
+          input below the fold. This names every one, with a jump link. */}
+      {Object.keys(err).filter((k) => k !== "_form").length > 0 && (
+        <div
+          className="mb-6 rounded-[2px] border border-alert/30 bg-alert/5 px-4 py-3"
+          role="alert"
+        >
+          <p className="text-[0.875rem] font-semibold text-alert">
+            {Object.keys(err).filter((k) => k !== "_form").length} field
+            {Object.keys(err).filter((k) => k !== "_form").length === 1 ? "" : "s"} need
+            attention before this can be saved:
+          </p>
+          <ul className="mt-2 space-y-1">
+            {Object.entries(err)
+              .filter(([k]) => k !== "_form")
+              .map(([field, message]) => (
+                <li key={field} className="text-[0.8125rem] text-alert">
+                  <a href={`#${field}`} className="underline underline-offset-2">
+                    {FIELD_LABELS[field] ?? field}
+                  </a>
+                  {" — "}
+                  {message}
+                </li>
+              ))}
+          </ul>
+        </div>
       )}
       {state.ok && (
         <p className="mb-6 rounded-[2px] border border-brand-200 bg-brand-50 px-4 py-3 text-[0.875rem] text-brand-700" role="status">

@@ -2,15 +2,22 @@
 
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useCallback, useEffect, useId } from "react";
+import { useCallback, useState } from "react";
 
 /**
  * Rich-text field. Emits HTML, which is what the existing catalogue already
  * stores and what the storefront's .prose-clinical styles already render — so
  * copy written here lands on the product page looking the way it looks here.
  *
- * The value is mirrored into a hidden input so the surrounding <form> submits it
- * with everything else and the Server Action sees one FormData payload.
+ * The value lives in React state and is rendered into a hidden input, so the
+ * surrounding <form> submits it with everything else.
+ *
+ * It used to write into that input imperatively via getElementById, which
+ * silently failed: the input is only mounted once Tiptap has initialised, and
+ * `immediatelyRender: false` means that happens a tick later, so a submit could
+ * carry no description at all and the server would reject a product the user
+ * had plainly written copy for. Controlled state removes the ordering problem —
+ * the input is now present, and correct, from the very first render.
  *
  * NOTE: HTML from this editor is stored as-authored and rendered with
  * dangerouslySetInnerHTML on the storefront. Tiptap constrains input to its own
@@ -27,13 +34,24 @@ type Props = {
 
 const HEADING_LEVELS = [2, 3] as const;
 
+/** Tiptap represents "empty" as <p></p>; that must not count as content. */
+export function normalizeHtml(html: string | null | undefined): string {
+  if (!html) return "";
+  const text = html
+    .replace(/<br\s*\/?>/gi, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .trim();
+  return text.length === 0 ? "" : html;
+}
+
 export default function RichTextEditor({
   name,
   defaultValue,
   placeholder,
   minHeight = "12rem",
 }: Props) {
-  const id = useId();
+  const [html, setHtml] = useState(() => normalizeHtml(defaultValue));
 
   const editor = useEditor({
     extensions: [
@@ -50,39 +68,29 @@ export default function RichTextEditor({
     // Required in the App Router: rendering the editor during SSR produces a
     // hydration mismatch, so the first paint is deferred to the client.
     immediatelyRender: false,
+    onUpdate: ({ editor }) => setHtml(normalizeHtml(editor.getHTML())),
     editorProps: {
       attributes: {
         class: "prose-clinical focus:outline-none",
         style: `min-height:${minHeight}`,
-        "aria-labelledby": id,
       },
     },
   });
 
-  // Keep the hidden input in sync without re-rendering the whole form on every
-  // keystroke — the DOM node is written to directly.
-  useEffect(() => {
-    if (!editor) return;
-    const sync = () => {
-      const el = document.getElementById(`${id}-value`) as HTMLInputElement | null;
-      if (!el) return;
-      const html = editor.getHTML();
-      el.value = html === "<p></p>" ? "" : html;
-    };
-    sync();
-    editor.on("update", sync);
-    return () => {
-      editor.off("update", sync);
-    };
-  }, [editor, id]);
+  // Rendered in both branches: the form must carry a value even if it is
+  // submitted before Tiptap has finished initialising.
+  const hidden = <input type="hidden" name={name} value={html} readOnly />;
 
   if (!editor) {
     return (
-      <div
-        className="rounded-[2px] border border-line bg-mist"
-        style={{ minHeight }}
-        aria-busy="true"
-      />
+      <div>
+        <div
+          className="rounded-[2px] border border-line bg-mist"
+          style={{ minHeight }}
+          aria-busy="true"
+        />
+        {hidden}
+      </div>
     );
   }
 
@@ -163,16 +171,16 @@ export default function RichTextEditor({
         </div>
       </div>
 
-      <div className="px-4 py-3 text-[0.875rem]">
-        <EditorContent editor={editor} />
-        {placeholder && editor.isEmpty && (
-          <p className="pointer-events-none -mt-[1.75rem] text-[0.875rem] text-ink-muted/70">
+      <div className="relative px-4 py-3 text-[0.875rem]">
+        {placeholder && html === "" && (
+          <p className="pointer-events-none absolute left-4 top-3 text-[0.875rem] text-ink-muted/70">
             {placeholder}
           </p>
         )}
+        <EditorContent editor={editor} />
       </div>
 
-      <input type="hidden" id={`${id}-value`} name={name} defaultValue={defaultValue ?? ""} />
+      {hidden}
     </div>
   );
 }
@@ -220,14 +228,9 @@ function LinkButton({ editor }: { editor: Editor }) {
       editor.chain().focus().unsetLink().run();
       return;
     }
-    // window.prompt is intentional here: a modal dialog for one URL field would
-    // be more UI than the task needs, and it keeps focus handling simple.
     const url = window.prompt("Link URL (include https://)");
     if (!url) return;
-    if (!/^https?:\/\//i.test(url)) {
-      window.alert("Links must start with http:// or https://");
-      return;
-    }
+    if (!/^https?:\/\//i.test(url)) return;
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor, active]);
 

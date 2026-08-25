@@ -20,6 +20,22 @@ const optionalText = z.preprocess(
   z.string().trim().nullable().default(null)
 );
 
+/**
+ * Same, for the rich-text fields. An editor the user opened and then cleared
+ * emits markup with no words in it — "<p></p>", "<p><br></p>" — which is not a
+ * description. Without this, "a published product needs a description" would be
+ * satisfied by empty markup.
+ */
+const optionalHtml = z.preprocess((v) => {
+  if (typeof v !== "string") return v;
+  const text = v
+    .replace(/<br\s*\/?>/gi, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .trim();
+  return text.length === 0 ? null : v;
+}, z.string().trim().nullable().default(null));
+
 /** "S, M, L" -> ["S","M","L"], de-duplicated, blanks dropped. */
 const csvList = z.preprocess((v) => {
   if (Array.isArray(v)) return v;
@@ -54,10 +70,10 @@ export const productSchema = z
 
     // --- Rich text (HTML from the editor) ---
     shortDescription: optionalText,
-    description: optionalText,
-    features: optionalText,
-    conditions: optionalText,
-    returnPolicy: optionalText,
+    description: optionalHtml,
+    features: optionalHtml,
+    conditions: optionalHtml,
+    returnPolicy: optionalHtml,
 
     // --- Pricing & inventory ---
     price: money,
