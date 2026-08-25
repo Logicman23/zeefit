@@ -54,13 +54,20 @@ a migration that proposes dropping Supabase's own tables.
 Dashboard → **Authentication → Hooks → Customize Access Token** → select
 `public.custom_access_token_hook`.
 
-### 6. Disable public sign-ups
+### 6. Disable public sign-ups (recommended, no longer load-bearing)
 
-Dashboard → **Authentication → Sign In / Providers** → turn off new sign-ups.
+Dashboard -> **Authentication -> Sign In / Providers** -> turn off new sign-ups.
 
-**This matters.** The signup trigger creates a `profiles` row for every new
-`auth.users` row. With public sign-ups enabled, anyone who registers becomes an
-Editor with write access to the catalogue.
+This used to be the only thing preventing a stranger from becoming an Editor,
+because a trigger gave every new auth user a staff profile. That trigger is gone
+(): registering now creates an
+ row and nothing else, and  treats anyone without
+a profile as not staff. Verified by registering while claiming
+ in sign-up metadata -- the claim was ignored and no profile
+appeared.
+
+Still worth switching off so the auth table does not fill with registrations for
+a site that has no customer accounts.
 
 ### 7. Import the existing catalogue
 
