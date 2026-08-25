@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requirePermission } from "@/lib/auth/guard";
 import { can } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
 import { aed } from "@/lib/format";
 import { Card, StatusPill, Button } from "@/components/admin/ui";
 import { StatTile, Meter } from "@/components/admin/StatTile";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const staff = await requirePermission("product:read");
   const showsAudit = can(staff.role, "audit:read");
+  const lowStockAt = Number(await getSetting<number>("commerce.lowStockThreshold"));
 
   const [byStatus, categoryCount, lowStock, seoComplete, liveTotal, recent, activity] =
     await Promise.all([
@@ -25,7 +27,7 @@ export default async function DashboardPage() {
           deletedAt: null,
           trackInventory: true,
           status: { not: "ARCHIVED" },
-          stock: { lte: 5 },
+          stock: { lte: lowStockAt },
         },
       }),
       prisma.product.count({
@@ -100,7 +102,7 @@ export default async function DashboardPage() {
           label="Low stock"
           value={lowStock}
           tone={lowStock > 0 ? "warn" : "neutral"}
-          note="Tracked items at or below threshold"
+          note={`Tracked items at or below ${lowStockAt}`}
           href="/admin/products?sort=stock&dir=asc"
         />
         <StatTile label="Categories" value={categoryCount} note="Leaf categories in the tree" />

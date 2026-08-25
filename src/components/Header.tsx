@@ -15,9 +15,11 @@ const LANGS = [
 export default function Header({
   children,
   catalog,
+  storeName,
 }: {
   children: React.ReactNode;
   catalog: TopCategory[];
+  storeName: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -72,7 +74,7 @@ export default function Header({
           </button>
 
           {/* Wordmark */}
-          <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label={site.name}>
+          <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label={storeName}>
             <span className="flex h-9 w-9 items-center justify-center bg-brand font-display text-base font-bold text-paper transition-colors duration-300 group-hover:bg-ink">
               Z
             </span>
