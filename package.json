@@ -9,11 +9,12 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "npm run db:check && prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed",
+    "db:seed": "npm run db:check && prisma db seed",
     "db:studio": "prisma studio",
-    "verify:seed": "tsx scripts/verify-seed-mapping.ts"
+    "verify:seed": "tsx scripts/verify-seed-mapping.ts",
+    "db:check": "tsx scripts/check-db-empty.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
