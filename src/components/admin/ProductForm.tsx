@@ -7,6 +7,7 @@ import type { ProductActionState } from "@/app/admin/(protected)/products/action
 import { slugify } from "@/lib/slug";
 import { Section, Field, inputClass, Button, Card } from "./ui";
 import RichTextEditor from "./RichTextEditor";
+import ImageUploader from "./ImageUploader";
 import SeoPreview, { CharCounter, SEO_TITLE_MAX, SEO_DESCRIPTION_MAX } from "./SeoPreview";
 
 export type CategoryOption = { id: string; name: string; trail: string };
@@ -365,22 +366,36 @@ export default function ProductForm({
           </Section>
 
           {/* -------------------------------------------- Media & variants */}
-          <Section step="04" title="Media & options" description="Comma-separated lists.">
+          <Section
+            step="04"
+            title="Media & options"
+            description="Upload images, or point at existing paths on the site."
+          >
             <Field
               label="Primary image"
               htmlFor="primaryImage"
+              required
               error={err.primaryImage}
-              hint="Path or URL, e.g. /products/product-featured-83.jpeg"
+              hint="The one shown on cards and search results. Required to publish."
             >
-              <input
-                id="primaryImage"
+              <ImageUploader
                 name="primaryImage"
                 defaultValue={defaults.primaryImage}
-                className={inputClass(!!err.primaryImage)}
+                label="Upload primary product image"
               />
             </Field>
-            <Field label="Gallery" htmlFor="gallery" error={err.gallery} hint="/gallery/149.png, /gallery/150.png">
-              <input id="gallery" name="gallery" defaultValue={defaults.gallery} className={inputClass()} />
+            <Field
+              label="Gallery"
+              htmlFor="gallery"
+              error={err.gallery}
+              hint="Additional shots, shown on the product page."
+            >
+              <ImageUploader
+                name="gallery"
+                defaultValue={defaults.gallery}
+                multiple
+                label="Upload gallery images"
+              />
             </Field>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Sizes" htmlFor="sizes" hint="S, M, L, XL, XXL">
